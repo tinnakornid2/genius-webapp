@@ -43,6 +43,8 @@
   const collatorTh = new Intl.Collator('th', { sensitivity: 'base', numeric: true });
   let charts = { kills: null, points: null };
   let spinWheelState = { angle: 0, spinning: false };
+  let suppressServerSave = false;
+  const debounce = (fn, ms) => { let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); }; };
   let barValueLabelPlugin = {
     id: 'barValueLabels',
     afterDatasetsDraw(chart, args, pluginOptions) {
@@ -94,6 +96,8 @@
     } catch {}
   }
 
+  let serverSaveTimer = null;
+  const scheduleServerSave = () => { if (suppressServerSave) return; clearTimeout(serverSaveTimer); serverSaveTimer = setTimeout(() => { saveServerState(); }, 800); };
   const saveAll = () => {
     localStorage.setItem(STORAGE_KEYS.bosses, JSON.stringify(state.bosses));
     localStorage.setItem(STORAGE_KEYS.members, JSON.stringify(state.members));
@@ -103,7 +107,7 @@
     localStorage.setItem(STORAGE_KEYS.recorderIds, JSON.stringify(state.recorderIds));
     localStorage.setItem(STORAGE_KEYS.dashboardCounters, JSON.stringify(state.dashboardCounters));
     localStorage.setItem(STORAGE_KEYS.events, JSON.stringify(state.events));
-    saveServerState();
+    scheduleServerSave();
   };
 
   const loadAll = () => {
@@ -1033,7 +1037,7 @@
       hideEM.onclick = () => { boxEM.style.display = 'none'; hideEM.style.display = 'none'; showEM.style.display = ''; };
     }
     const attSearch = document.getElementById('attendanceMemberSearch');
-    if (attSearch) attSearch.addEventListener('input', (e) => { renderAttendanceMemberSelectList(e.target.value || ''); });
+    if (attSearch) attSearch.addEventListener('input', debounce((e) => { renderAttendanceMemberSelectList(e.target.value || ''); }, 150));
     const selAllBtn = document.getElementById('attendanceSelectAllVisibleBtn');
     if (selAllBtn) selAllBtn.onclick = () => {
       const list = document.getElementById('attendanceMemberSelectList');
@@ -1247,7 +1251,7 @@
 
   function initRecorderManage() {
     const search = document.getElementById('recorderSearch');
-    if (search) search.addEventListener('input', (e) => { renderRecorderSelectList(e.target.value || ''); });
+    if (search) search.addEventListener('input', debounce((e) => { renderRecorderSelectList(e.target.value || ''); }, 150));
     const showBtn = document.getElementById('showRecorderPanelBtn');
     const hideBtn = document.getElementById('hideRecorderPanelBtn');
     const panel = document.getElementById('recorderManagePanel');
@@ -2692,10 +2696,10 @@
       };
     }
     if (searchInput) {
-      searchInput.addEventListener('input', () => {
+      searchInput.addEventListener('input', debounce(() => {
         const q = (searchInput.value || '').trim();
         renderSpinMemberSelectList(q);
-      });
+      }, 150));
     }
     if (selectAllBtn) {
       selectAllBtn.onclick = () => {
@@ -2922,7 +2926,9 @@
       if (Array.isArray(remote.recorderIds)) state.recorderIds = remote.recorderIds;
       if (remote.dashboardCounters && typeof remote.dashboardCounters === 'object') state.dashboardCounters = remote.dashboardCounters;
       if (Array.isArray(remote.events)) state.events = remote.events;
+      suppressServerSave = true;
       saveAll();
+      suppressServerSave = false;
     }
 
     initTabs();
