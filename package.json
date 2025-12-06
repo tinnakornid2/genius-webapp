@@ -1,0 +1,9 @@
+{
+  "name": "genius-webapp",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "@netlify/functions": "^2.5.0",
+    "@netlify/blobs": "^4.2.0"
+  }
+}

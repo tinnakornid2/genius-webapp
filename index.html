@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <title>โปรแกรมนับคะแนนการล่าบอส</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="./style.css" />
+  <meta name="color-scheme" content="dark">
+</head>
+<!-- ตำแหน่งภายใน <body> -->
+<body>
+  <header class="app-header">
+    <h1>โปรแกรมนับคะแนนการล่าบอส</h1>
+    <nav class="tabs">
+      <button class="tab-btn" data-tab="hunt">บันทึกล่า</button>
+      <button class="tab-btn" data-tab="bosses">บอส</button>
+      <button class="tab-btn" data-tab="members">สมาชิก</button>
+      <button class="tab-btn" data-tab="summary">สรุป/ส่งออก</button>
+      <button class="tab-btn" data-tab="points">คะแนนแคลน</button>
+      <button class="tab-btn" data-tab="attendance">กิจกรรม</button>
+      <button class="tab-btn" data-tab="spin">วงล้อ</button>
+      <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+    </nav>
+  </header>
+
+  <main id="app">
+    <!-- บันทึกล่า -->
+    <section id="tab-hunt" class="tab">
+      <!-- สถิติด่วนด้านบน -->
+      <div class="dashboard-stats">
+        <div class="stat-card">
+          <div class="stat-icon">🎯</div>
+          <div class="stat-content">
+            <div class="stat-number" id="totalBossesCount">0</div>
+            <div class="stat-label">บอสทั้งหมด</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">👥</div>
+          <div class="stat-content">
+            <div class="stat-number" id="totalMembersCount">0</div>
+            <div class="stat-label">สมาชิกทั้งหมด</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📊</div>
+          <div class="stat-content">
+            <div class="stat-number" id="todayHuntsCount">0</div>
+            <div class="stat-label">การล่าวันนี้</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">⭐</div>
+          <div class="stat-content">
+            <div class="stat-number" id="todayPointsCount">0</div>
+            <div class="stat-label">คะแนนวันนี้</div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <button id="resetHuntsAccumBtn" class="btn-secondary btn-mini">รีเซทจำนวนล่าสะสม</button>
+      </div>
+
+      <!-- เนื้อหาหลัก -->
+      <div class="hunt-layout">
+        <!-- ส่วนซ้าย: เลือกบอส -->
+        <div class="boss-panel">
+          <div class="panel-header">
+            <h2>🎯 เลือกบอส</h2>
+            <div class="boss-stats">
+              <span id="bossListCount">0 บอส</span>
+            </div>
+          </div>
+          
+          <div class="search-section">
+            <div class="search-box">
+              <input type="text" id="bossHuntSearch" placeholder="🔍 ค้นหาบอส..." />
+              <button id="refreshBossListBtn" class="icon-btn" title="รีเฟรชรายการ">🔄</button>
+            </div>
+          </div>
+
+          <div class="boss-list-container">
+            <ul id="bossHuntList" class="boss-list"></ul>
+            <div id="noBossesMsg" class="empty-state">
+              <div class="empty-icon">🎯</div>
+              <div class="empty-text">ไม่มีบอสในระบบ</div>
+              <div class="empty-hint">ไปที่แท็บ "บอส" เพื่อเพิ่มบอส</div>
+            </div>
+          </div>
+
+          <!-- ข้อมูลบอสที่เลือก -->
+          <div class="selected-boss-info">
+            <div class="info-header">บอสที่เลือก</div>
+            <div id="selectedBossDisplay" class="boss-display">
+              <div class="boss-name">ยังไม่ได้เลือกบอส</div>
+              <div class="boss-points">-</div>
+            </div>
+          </div>
+
+          <!-- จำนวนต่อคน (ย้ายมาไว้ฝั่งซ้ายใต้ชื่อบอส) -->
+          <div class="quantity-section">
+            <div class="section-header">
+              <h3>🔢 จำนวนต่อคน</h3>
+              <div class="bulk-controls">
+                <label>ตั้งค่าทั้งหมด:</label>
+                <input type="number" id="bulkCountInput" min="1" max="99" value="1" class="quantity-input" />
+                <button id="applyBulkCountBtn" class="btn-mini">ใช้กับทุกคน</button>
+              </div>
+            </div>
+            <div id="selectedMembersWithCounts" class="quantity-list"></div>
+          </div>
+        </div>
+
+        <!-- ส่วนขวา: บันทึกการล่า -->
+        <div class="hunt-panel">
+          <div class="panel-header">
+            <h2>📝 บันทึกการล่า</h2>
+          </div>
+
+          <!-- ข้อมูลพื้นฐาน -->
+          <div class="hunt-basic-info">
+            <div class="info-row">
+              <label for="huntDate">📅 วันที่:</label>
+              <input type="date" id="huntDate" />
+            </div>
+            <div class="info-row">
+              <label>👤 ผู้บันทึก:</label>
+              <div id="recorderSavedInline" class="inline-badges"></div>
+              <button id="showRecorderPanelBtn" class="btn-mini btn-yellow">แสดง</button>
+              <button id="hideRecorderPanelBtn" class="btn-mini btn-yellow" style="display:none;">ซ่อน</button>
+              <div id="recorderManagePanel" class="mini-panel" style="display:none; margin-top:6px;">
+                <div class="member-section">
+                  <div class="section-header">
+                    <h3>เลือกผู้บันทึก</h3>
+                    <div class="member-controls">
+                      <button id="recorderSelectAllVisibleBtn" class="btn-mini">เลือกที่แสดง</button>
+                      <button id="recorderDeselectAllBtn" class="btn-mini">ยกเลิกทั้งหมด</button>
+                      <button id="recorderClearSelectionBtn" class="btn-mini">ล้างการเลือก</button>
+                    </div>
+                  </div>
+                <div class="member-search">
+                  <input type="text" id="recorderSearch" placeholder="🔍 ค้นหาสมาชิก..." />
+                </div>
+                <div id="recorderSelectList" class="member-list"></div>
+                <div id="recorderSelectedPreview" class="quantity-list" style="margin-top:8px;"></div>
+                <div class="row">
+                  <button id="saveRecorderListBtn" class="btn-primary">บันทึกรายชื่อผู้บันทึก</button>
+                  <span id="saveRecorderMsg" class="status-msg"></span>
+                </div>
+                <div id="recorderSavedList" class="quantity-list" style="margin-top:8px;"></div>
+              </div>
+              </div>
+            </div>
+            <div class="save-actions">
+              <button id="saveHuntBtn2" class="btn-primary">💾 บันทึก</button>
+              <button id="saveAndNewBtn" class="btn-secondary">💾➕ บันทึกและเริ่มใหม่</button>
+              <span id="huntSaveMsg2" class="status-msg"></span>
+            </div>
+          </div>
+
+          <!-- เลือกสมาชิก -->
+          <div class="member-section">
+            <div class="section-header">
+              <h3>👥 เลือกสมาชิก</h3>
+              <div class="member-controls">
+                <button id="quickAddAllBtn" class="btn-secondary btn-small">⚡ เลือกทุกคน</button>
+                <button id="clearSelectionBtn" class="btn-secondary btn-small">🗑️ ล้างการเลือก</button>
+              </div>
+            </div>
+            
+            <div class="member-search">
+              <input type="text" id="memberSelectSearch" placeholder="🔍 ค้นหาสมาชิก..." />
+              <div class="search-controls">
+                <button id="selectAllVisibleBtn" class="btn-mini">เลือกที่แสดง</button>
+                <button id="deselectAllBtn" class="btn-mini">ยกเลิกทั้งหมด</button>
+              </div>
+            </div>
+            
+            <div id="memberSelectList" class="member-list"></div>
+          </div>
+
+          <!-- จำนวนต่อคน (ถูกย้ายไปฝั่งซ้ายแล้ว) -->
+          <!-- เดิมอยู่ที่นี่: ลบทั้งบล็อกออก -->
+          <!--
+          <div class="quantity-section">
+            <div class="section-header">
+              <h3>🔢 จำนวนต่อคน</h3>
+              <div class="bulk-controls">
+                <label>ตั้งค่าทั้งหมด:</label>
+                <input type="number" id="bulkCountInput" min="1" max="99" value="1" class="quantity-input" />
+                <button id="applyBulkCountBtn" class="btn-mini">ใช้กับทุกคน</button>
+              </div>
+            </div>
+            <div id="selectedMembersWithCounts" class="quantity-list"></div>
+          </div>
+          -->
+
+          
+        </div>
+      </div>
+
+      <!-- รายการบันทึกล่าสุด -->
+      <div class="hunt-history">
+        <div class="history-header">
+          <h3>📋 รายการบันทึกล่าสุด</h3>
+          <div class="history-controls">
+            <label>ช่วงวันที่:</label>
+            <input type="date" id="filterStartDate" />
+            <span>ถึง</span>
+            <input type="date" id="filterEndDate" />
+            <button id="applyFilterBtn" class="btn-secondary">🔎 กรอง</button>
+            <button id="clearHuntsTodayBtn" class="btn-secondary">👁️ ซ่อนวันนี้</button>
+            <button id="resetHuntsViewBtn" class="btn-primary">🔄 รีเซ็ตการแสดงผล</button>
+            <button id="clearHuntsAllRealBtn" class="btn-danger">🗑️ ลบทั้งหมด</button>
+          </div>
+        </div>
+        
+        <div class="table-container">
+          <table class="hunt-table" id="huntLogTable">
+            <thead>
+              <tr>
+                <th>📅 วันที่</th>
+                <th>🎯 บอส</th>
+                <th>👤 สมาชิก</th>
+                <th>🔢 จำนวน</th>
+                <th>⭐ คะแนน/ตัว</th>
+                <th>📊 คะแนนรวม</th>
+                <th>⚙️ จัดการ</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        
+        <div class="history-note">
+          <span class="note-icon">💡</span>
+          <span class="note-text">การซ่อนรายการเป็นการซ่อนเฉพาะบนหน้า ข้อมูลยังคงอยู่ในระบบ</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- จัดการบอส -->
+    <section id="tab-bosses" class="tab">
+      <h2>จัดการบอส</h2>
+      <div class="grid two">
+        <div class="box">
+          <h3>เพิ่มบอส</h3>
+          <div class="row">
+            <label for="newBossName">ชื่อบอส:</label>
+            <input type="text" id="newBossName" placeholder="เช่น ORFEN" />
+          </div>
+          <div class="row">
+            <label for="newBossPoints">คะแนน:</label>
+            <input type="number" id="newBossPoints" min="0" step="10" placeholder="เช่น 150" />
+          </div>
+          <button id="addBossBtn" class="primary">เพิ่มบอส</button>
+          <span id="addBossMsg" class="msg"></span>
+        </div>
+
+        <div>
+          <h3>รายชื่อสมาชิก</h3>
+          <input type="text" id="bossManageSearch" placeholder="ค้นหาบอส..." />
+          <table class="table" id="bossManageTable">
+            <thead>
+              <tr>
+                <th>ชื่อบอส</th>
+                <th>คะแนน</th>
+                <th>จัดการ</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- จัดการสมาชิก -->
+    <section id="tab-members" class="tab">
+      <h2>จัดการสมาชิก</h2>
+      <div class="grid two">
+        <div class="box">
+          <h3>เพิ่มสมาชิก</h3>
+          <div class="row">
+            <label for="newMemberName">ชื่อสมาชิก:</label>
+            <input type="text" id="newMemberName" placeholder="เช่น 2Bladex" />
+          </div>
+          <button id="addMemberBtn" class="primary">เพิ่มสมาชิก</button>
+          <span id="addMemberMsg" class="msg"></span>
+        </div>
+
+        <div>
+          <h3>รายชื่อสมาชิก</h3>
+          <input type="text" id="memberManageSearch" placeholder="ค้นหาสมาชิก..." />
+          <table class="table" id="memberManageTable">
+            <thead>
+              <tr>
+                <th>ชื่อสมาชิก</th>
+                <th>บัพ%</th>
+                <th>วันเริ่ม</th>
+                <th>วันหมดอายุ</th>
+                <th>จัดการ</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- สรุปและส่งออก -->
+    <section id="tab-summary" class="tab">
+      <div class="section-header">
+        <h2>สรุป/ส่งออก</h2>
+        <div class="actions inline">
+          <button id="exportExcelBtn" class="primary">ส่งออก Excel</button>
+          <button id="exportCsvBtn">ส่งออก CSV</button>
+          <button id="exportJsonBtn">ส่งออก JSON</button>
+          <button id="importJsonBtn">นำเข้า JSON</button>
+          <input type="file" id="importJsonInput" accept="application/json" style="display:none" />
+          <button id="importCsvBtn">นำเข้า CSV</button>
+          <input type="file" id="importCsvInput" accept=".csv,text/csv" style="display:none" />
+          <span id="exportMsg" class="msg"></span>
+        </div>
+        <div class="export-options" style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <label><input type="checkbox" id="optDailySheets" checked /> แยกชีตตามวันที่</label>
+          <label><input type="checkbox" id="optDailyPivot" checked /> สร้าง Pivot รายวัน</label>
+          <label><input type="checkbox" id="optBossTotals" checked /> สรุปต่อบอส</label>
+          <label><input type="checkbox" id="optAutoFilter" checked /> เปิดตัวกรองตาราง</label>
+        </div>
+      </div>
+
+
+
+      <div class="grid two" style="margin-top:8px;">
+        <div class="box">
+          <h3>สรุปรวมตามช่วงวันที่</h3>
+          <div class="row">
+            <label>ตั้งแต่:</label>
+            <input type="date" id="sumStartDate" />
+            <label>ถึง:</label>
+            <input type="date" id="sumEndDate" />
+            <button id="calcRangeSummaryBtn" class="btn-blue">คำนวณ</button>
+            <div class="range-actions">
+              <button id="applyRangeToClanBtn" class="btn-green">อัพเดทคะแนนเข้าแคลน</button>
+              <button id="undoRangeToClanBtn" class="btn-orange">ย้อนคะแนนที่เพิ่ม</button>
+            </div>
+          </div>
+          <div class="row">
+            <strong>จำนวนล่ารวม:</strong> <span id="rangeTotalKills">0</span>
+            <strong style="margin-left:16px;">คะแนนรวม:</strong> <span id="rangeTotalPoints">0</span>
+          </div>
+          <table class="table" id="rangeMemberTotalsTable">
+            <thead>
+              <tr>
+                <th>สมาชิก</th>
+                <th>จำนวนรวม</th>
+                <th>คะแนนรวม</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="box">
+          <h3>สรุปคะแนนรวมต่อคน</h3>
+          <div id="totalsPerMemberContainer"></div>
+        </div>
+      </div>
+
+      <div class="box">
+        <h3>สรุปจำนวนต่อบอส x สมาชิก</h3>
+        <div class="scroll-x">
+          <table class="table" id="pivotBossMemberTable">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="box">
+        <h3>สรุปการเข้าร่วมกิจกรรม (ช่วงวันที่เดียวกัน)</h3>
+        <div class="scroll-x">
+          <table class="table" id="summaryAttendanceTable">
+            <thead>
+              <tr>
+                <th>สมาชิก</th>
+                <th>VEPRA</th>
+                <th>BOSS-RUSH</th>
+                <th>DRAGONBEST-INVA</th>
+                <th>ORFEN-INVA</th>
+                <th>CATACOM</th>
+                <th>รวม</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+
+    </section>
+
+    <!-- คะแนนแคลน -->
+    <section id="tab-points" class="tab">
+      <h2>คะแนนแคลน</h2>
+      <div class="box" id="pointsLoginBox">
+        <h3>เข้าสู่ระบบเพื่อจัดการคะแนน</h3>
+        <div class="row">
+          <label>ผู้ใช้:</label>
+          <input type="text" id="pointsLoginUser" placeholder="เช่น Leader" />
+          <label>รหัสผ่าน:</label>
+          <input type="password" id="pointsLoginPass" placeholder="ตั้ง/ใช้รหัสผ่าน" />
+          <button id="pointsLoginBtn" class="btn-blue">เข้าสู่ระบบ</button>
+          <span id="pointsLoginMsg" class="msg"></span>
+        </div>
+      </div>
+      <div id="pointsContent" class="grid two">
+
+        <div class="box">
+          <h3>คะแนนต่อสมาชิก</h3>
+          <div class="row" style="margin-bottom:8px;">
+            <button id="pointsLogoutBtn" class="btn-danger">ออกจากระบบ</button>
+          </div>
+          <div class="points-box-inner">
+            <div>
+              <div class="section-header"><h3>จัดการคะแนน</h3></div>
+              <div class="row">
+            <label>Member:</label>
+                <select id="pointsMemberSelectAdjust"></select>
+            <label>Points:</label>
+                <input type="number" id="pointsAdjustAmount" min="1" step="1" value="10" />
+                <label>หมายเหตุ:</label>
+                <input type="text" id="pointsAdjustNote" placeholder="เช่น บริจาค/หักซื้อไอเท็ม" />
+                <button id="addPointsBtn" class="btn-primary">เพิ่มคะแนน</button>
+                <button id="deductPointsBtn" class="btn-danger">หักคะแนน</button>
+                <button id="clearPointsBtn" class="btn-danger">ล้างคะแนนทั้งหมด</button>
+              </div>
+              <div class="row">
+                <label>ล้างเฉพาะสมาชิก:</label>
+                <select id="pointsMemberSelectClear"></select>
+                <button id="clearPointsByMemberBtn" class="btn-danger">ล้างคะแนนเฉพาะคน</button>
+              </div>
+              <div class="row" style="margin-top:8px;">
+                <button id="exportClanPointsJsonBtn" class="btn-primary">ส่งออก JSON (คะแนนแคลน)</button>
+                <button id="importClanPointsJsonBtn" class="btn-secondary">นำเข้า JSON (คะแนนแคลน)</button>
+                <input type="file" id="importClanPointsJsonInput" accept="application/json" style="display:none;" />
+              </div>
+              <div id="pointsBalanceContainer" style="margin-top:8px;"></div>
+            </div>
+            
+          </div>
+        </div>
+        <div class="box" id="pointsTerminalBox">
+          <h3>บันทึกการทำงาน</h3>
+          <div id="pointsTerminalLog" class="terminal"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- กิจกรรม -->
+    <section id="tab-attendance" class="tab">
+      <h2>การเข้าร่วมกิจกรรม</h2>
+      <div class="box" style="margin-bottom:12px;">
+        <div class="section-header">
+          <h3>จัดการกิจกรรม</h3>
+          <div class="member-controls">
+            <button id="showEventManageBtn" class="btn-mini btn-yellow">แสดง</button>
+            <button id="hideEventManageBtn" class="btn-mini btn-yellow" style="display:none;">ซ่อน</button>
+          </div>
+        </div>
+        <div id="eventManageContent" style="display:none;">
+          <div class="row">
+            <input type="text" id="newEventInput" placeholder="ชื่อกิจกรรมใหม่" />
+            <button id="addEventBtn" class="btn-primary">เพิ่มกิจกรรม</button>
+          </div>
+          <div id="eventList" class="member-list" style="margin-top:8px;"></div>
+        </div>
+      </div>
+      <div class="grid two">
+        <div class="box">
+          <h3>บันทึกการเข้าร่วม</h3>
+          <div class="row">
+            <label>กิจกรรม:</label>
+            <select id="attendanceEventSelect">
+              <option value="VEPRA">VEPRA</option>
+              <option value="BOSS-RUSH">BOSS-RUSH</option>
+              <option value="DRAGONBEST-INVA">DRAGONBEST-INVA</option>
+              <option value="ORFEN-INVA">ORFEN-INVA</option>
+              <option value="CATACOM">CATACOM</option>
+            </select>
+            <label>วันที่:</label>
+            <input type="date" id="attendanceDate" />
+            <div class="attendance-top-actions">
+              <button id="markAttendanceBtn" class="btn-primary btn-small">บันทึก</button>
+              <button id="markAttendanceAndNewBtn" class="btn-green btn-small">บันทึกและล้างรายชื่อ</button>
+              <button id="resetEventsBtn" class="btn-danger btn-small">รีเซทกิจกรรม</button>
+              <button id="restoreEventsBtn" class="btn-green btn-small">คืนค่ากิจกรรม</button>
+              <span id="attendanceSaveMsg" class="status-msg"></span>
+            </div>
+          </div>
+          <div class="member-section">
+            <div class="section-header">
+              <h3>👥 เลือกสมาชิก</h3>
+              <div class="member-controls">
+                <button id="attendanceSelectAllVisibleBtn" class="btn-mini">เลือกที่แสดง</button>
+                <button id="attendanceDeselectAllBtn" class="btn-mini">ยกเลิกทั้งหมด</button>
+                <button id="attendanceClearSelectionBtn" class="btn-mini">ล้างการเลือก</button>
+              </div>
+            </div>
+            <div class="member-search">
+              <input type="text" id="attendanceMemberSearch" placeholder="🔍 ค้นหาสมาชิก..." />
+            </div>
+            <div id="attendanceMemberSelectList" class="member-list"></div>
+            <div id="attendanceSelectedMembers" class="quantity-list" style="margin-top:8px;"></div>
+          </div>
+        </div>
+        <div class="box">
+          <h3>นับการเข้าร่วมกิจกรรม (ช่วงวันที่)</h3>
+          <div class="row">
+            <label>ตั้งแต่:</label>
+            <input type="date" id="attStartDate" />
+            <label>ถึง:</label>
+            <input type="date" id="attEndDate" />
+            <button id="calcAttendanceSummaryBtn" class="btn-secondary">คำนวณ</button>
+          </div>
+          <div class="scroll-x">
+            <table class="table" id="attendanceMemberTotalsTable">
+              <thead>
+                <tr>
+                  <th>สมาชิก</th>
+                  <th>VEPRA</th>
+                  <th>BOSS-RUSH</th>
+                  <th>DRAGONBEST-INVA</th>
+                  <th>ORFEN-INVA</th>
+                  <th>CATACOM</th>
+                  <th>รวม</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+    <!-- แดชบอร์ด -->
+    <section id="tab-dashboard" class="tab active">
+      <h2>Dashboard</h2
+      <div id="geniusBanner"><div class="genius-inner">Genius</div></div>
+      <div class="row">
+        <button id="resetHuntsAccumBtnDashboard" class="btn-secondary btn-mini">รีเซทจำนวนล่าสะสม</button>
+      </div>
+      <div class="grid two">
+        <div class="box">
+          <h3>Boss kills per member</h3>
+          <div class="chart-wrap"><canvas id="memberKillsChart"></canvas></div>
+          <div class="chart-rank" id="killsTopRank"></div>
+        </div>
+        <div class="box">
+          <h3>Total points per member</h3>
+          <div class="chart-wrap"><canvas id="memberPointsChart"></canvas></div>
+          <div class="chart-rank" id="pointsTopRank"></div>
+        </div>
+>
+      </div>
+    </section>
+
+    <!-- วงล้อ -->
+    <section id="tab-spin" class="tab">
+      <div class="grid two">
+        <div class="box">
+          <div class="box-header"><strong>ตั้งค่าตัวเลือก</strong></div>
+          <div class="row">
+            <input type="text" id="spinOptionInput" placeholder="เพิ่มตัวเลือก" />
+            <button id="addSpinOptionBtn" class="btn-primary">เพิ่ม</button>
+          </div>
+          <div class="row">
+            <button id="clearSpinOptionsBtn" class="btn-secondary">ล้างทั้งหมด</button>
+          </div>
+          <div class="section-header" style="margin-top:8px;">
+            <h3>เลือกจากสมาชิก</h3>
+            <div class="member-controls">
+              <button id="spinSelectAllVisibleBtn" class="btn-mini">เลือกที่แสดง</button>
+              <button id="spinDeselectAllBtn" class="btn-mini">ยกเลิกทั้งหมด</button>
+              <button id="spinAddSelectedToWheelBtn" class="btn-primary btn-small">เพิ่มเข้าวงล้อ</button>
+            </div>
+          </div>
+          <div class="member-search">
+            <input type="text" id="spinMemberSearch" placeholder="ค้นหาสมาชิก..." />
+          </div>
+          <div id="spinMemberSelectList" class="member-list"></div>
+          <div id="spinOptionsList" class="list"></div>
+        </div>
+        <div class="box">
+          <div class="box-header"><strong>หมุนวงล้อ</strong></div>
+          <div class="wheel-wrap">
+            <canvas id="spinWheelCanvas" width="360" height="360"></canvas>
+            <canvas id="spinEffectsCanvas" width="360" height="360" class="effects-canvas"></canvas>
+            <div id="spinWinnerOverlay" class="winner-overlay"></div>
+          </div>
+          <div class="row spin-controls">
+            <button id="spinWheelBtn" class="btn-primary btn-large">หมุน</button>
+            <span id="spinResultText" class="winner-text"></span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- SheetJS สำหรับส่งออก Excel -->
+  <!-- ส่วนท้ายไฟล์ ให้ลบ </div> เกิกินออก -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="./app.js"></script>
+  <!-- ลบสวิตช์โหมดมืดออก -->
+  <!-- เดิม: <div style="position:fixed; top:12px; right:12px; z-index:1000;">
+               <label class="theme-toggle">
+                 <input type="checkbox" id="themeToggle" />
+                 โหมดมืด
+               </label>
+             </div> -->
+</body>
+</html>
