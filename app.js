@@ -68,7 +68,13 @@
     }
   };
   if (typeof window !== 'undefined' && window.Chart) { window.Chart.register(barValueLabelPlugin); }
-  const SERVER_ENDPOINT = '/.netlify/functions/state';
+  let SERVER_ENDPOINT = '/.netlify/functions/state';
+  try {
+    const epParam = new URLSearchParams(window.location.search).get('endpoint');
+    const epLocal = localStorage.getItem('server_endpoint');
+    if (epParam) { SERVER_ENDPOINT = epParam; localStorage.setItem('server_endpoint', epParam); }
+    else if (epLocal) { SERVER_ENDPOINT = epLocal; }
+  } catch {}
   async function loadServerState() {
     try {
       const res = await fetch(SERVER_ENDPOINT, { method: 'GET' });
