@@ -709,10 +709,10 @@
     updateDashboardStats();
 
     const bossSearch = document.getElementById('bossHuntSearch');
-    if (bossSearch) bossSearch.addEventListener('input', (e) => {
+    if (bossSearch) bossSearch.addEventListener('input', debounce((e) => {
       renderBossHuntList(e.target.value || '');
-      updateDashboardStats(); // อัพเดทจำนวนบอสที่แสดง
-    });
+      updateDashboardStats();
+    }, 150));
 
     // ปุ่มรีเฟรชรายการบอส
     const refreshBossBtn = document.getElementById('refreshBossListBtn');
@@ -727,9 +727,9 @@
     });
 
     const memSearch = document.getElementById('memberSelectSearch');
-    if (memSearch) memSearch.addEventListener('input', (e) => {
+    if (memSearch) memSearch.addEventListener('input', debounce((e) => {
       renderMemberSelectList(e.target.value || '');
-    });
+    }, 150));
 
     const resetAccumBtn = document.getElementById('resetHuntsAccumBtn');
     if (resetAccumBtn) {
@@ -1725,15 +1725,28 @@
 
   function renderDashboardCharts() {
     const { perMember } = computeTotals();
+    const ledgerTotals = new Map();
+    for (let i = 0; i < state.ledger.length; i++) {
+      const l = state.ledger[i];
+      const cur = ledgerTotals.get(l.memberId) || 0;
+      ledgerTotals.set(l.memberId, cur + (l.points || 0));
+    }
     const rowsAll = state.members.map(m => {
       const s = perMember.get(m.id) || { kills: 0, points: 0 };
-      const ledgerPts = state.ledger.filter(l => l.memberId === m.id).reduce((sum, l) => sum + (l.points || 0), 0);
+      const ledgerPts = ledgerTotals.get(m.id) || 0;
       return { name: m.name, kills: s.kills, points: ledgerPts };
-    }).sort((a,b) => collatorTh.compare(a.name, b.name));
-    const labelsKills = rowsAll.map(r => r.name);
-    const killsData = rowsAll.map(r => r.kills);
-    const labelsPoints = rowsAll.map(r => r.name);
-    const pointsData = rowsAll.map(r => r.points);
+    });
+    const maxBars = 30;
+    const rowsKills = rowsAll.length > maxBars
+      ? [...rowsAll].sort((a,b) => b.kills - a.kills).slice(0, maxBars).sort((a,b) => collatorTh.compare(a.name, b.name))
+      : [...rowsAll].sort((a,b) => collatorTh.compare(a.name, b.name));
+    const rowsPoints = rowsAll.length > maxBars
+      ? [...rowsAll].sort((a,b) => b.points - a.points).slice(0, maxBars).sort((a,b) => collatorTh.compare(a.name, b.name))
+      : [...rowsAll].sort((a,b) => collatorTh.compare(a.name, b.name));
+    const labelsKills = rowsKills.map(r => r.name);
+    const killsData = rowsKills.map(r => r.kills);
+    const labelsPoints = rowsPoints.map(r => r.name);
+    const pointsData = rowsPoints.map(r => r.points);
     const topKills = [...rowsAll].sort((a,b) => b.kills - a.kills).slice(0, 3);
     const topPoints = [...rowsAll].sort((a,b) => b.points - a.points).slice(0, 3);
     const ctxKills = document.getElementById('memberKillsChart');
